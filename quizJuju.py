@@ -121,6 +121,7 @@ def login():
             st.session_state["current_question"] = 0
             st.session_state["finished"] = False
             st.session_state["questions"] = random.sample(QUESTIONS, len(QUESTIONS))  # Acak soal
+            st.session_state["answers"] = []
             st.rerun()
         else:
             st.error("Username atau password salah")
@@ -128,20 +129,20 @@ def login():
 # Fungsi untuk menjalankan kuis
 def quiz():
     st.title("Tes Masuk Kuliah")
-
-    # Pastikan soal sudah diacak
-    if "questions" not in st.session_state:
-        st.session_state["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
-
     total_questions = len(st.session_state["questions"])
-
-    # Tampilkan soal jika belum selesai
+    
     if st.session_state["current_question"] < total_questions:
         q = st.session_state["questions"][st.session_state["current_question"]]
         st.subheader(f"Soal {st.session_state['current_question'] + 1}: {q['question']}")
         answer = st.radio("Pilih jawaban:", q['options'], key=f"q{st.session_state['current_question']}")
-
+        
         if st.button("Submit Jawaban"):
+            st.session_state["answers"].append({
+                "question": q['question'],
+                "user_answer": answer,
+                "correct_answer": q['answer'],
+                "is_correct": answer == q['answer']
+            })
             if answer == q['answer']:
                 st.session_state["score"] += 1
             st.session_state["current_question"] += 1
@@ -155,8 +156,16 @@ def result():
     st.title("Hasil Tes")
     score = st.session_state.get("score", 0)
     total_questions = len(st.session_state.get("questions", []))
-    st.write(f"Skor Anda: {score}/{total_questions}")
-
+    st.markdown(f"<h2>Skor Anda: {score}/{total_questions}</h2>", unsafe_allow_html=True)
+    
+    st.subheader("Koreksi Jawaban")
+    for answer in st.session_state["answers"]:
+        status = "✅ Benar" if answer["is_correct"] else "❌ Salah"
+        st.write(f"- {answer['question']}")
+        st.write(f"  Jawaban Anda: {answer['user_answer']} {status}")
+        if not answer["is_correct"]:
+            st.write(f"  Jawaban Benar: {answer['correct_answer']}")
+    
     if st.button("Coba Lagi"):
         st.session_state.clear()  # Reset semua data
         st.rerun()
